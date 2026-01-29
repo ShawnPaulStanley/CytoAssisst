@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CytoAssist – AI Assisted FNAC Screening Tool</title>
+    <style>
+        /* --- CSS Variables & Reset --- */
+        :root {
+            /* Clinical Palette */
+            --primary-color: #2c5282; /* Deep clinical blue */
+            --primary-light: #4299e1; /* Lighter blue for accents */
+            --bg-color: #f7fafc;      /* Very light gray background */
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --border-color: #e2e8f0;
+            --success-color: #48bb78;
+            --warning-bg: #fffaf0;
+            --warning-border: #fbd38d;
+            --warning-text: #9c4221;
+            
+            /* Spacing & Layout */
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .logo-section p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        .header-badge {
+            background-color: #ebf8ff;
+            color: var(--primary-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border: 1px solid #bee3f8;
+        }
+
+        /* --- Medical Disclaimer --- */
+        .disclaimer-box {
+            background-color: var(--warning-bg);
+            border-left: 4px solid var(--warning-border);
+            padding: 1rem 1.5rem;
+            margin: 2rem 0;
+            border-radius: 4px;
+            color: var(--warning-text);
+            display: flex;
+            gap: 1rem;
+            align-items: start;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .disclaimer-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+        }
+
+        .disclaimer-text strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .disclaimer-text p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        /* --- Main Cards --- */
+        main {
+            flex: 1;
+            padding-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* --- Upload Section --- */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 3rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #fafbfc;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-light);
+            background-color: #ebf8ff;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* --- Preview & Results (Initially Hidden) --- */
+        .results-container {
+            display: none; /* Hidden by default */
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Grid Layout for Results --- */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- Confidence Meters --- */
+        .confidence-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .confidence-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .progress-track {
+            height: 12px;
+            background-color: #edf2f7;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%; /* Animates via JS */
+        }
+
+        .bar-suspicious { background-color: #e53e3e; } /* Red/Orange for suspicious */
+        .bar-benign { background-color: var(--success-color); } /* Green for benign */
+
+        /* --- Explanation/Heatmap --- */
+        .viz-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .viz-box {
+            position: relative;
+            background-color: #000;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .viz-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .viz-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+
+        /* Mock Heatmap Overlay */
+        .heatmap-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Simulated Heatmap Gradient */
+            background: radial-gradient(circle at 60% 40%, rgba(255, 0, 0, 0.5) 0%, rgba(255, 255, 0, 0.3) 30%, transparent 60%);
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            background-color: #2a4365;
+        }
+
+        .btn-reset {
+            background-color: white;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            margin-top: 1rem;
+        }
+
+        .btn-reset:hover {
+            background-color: #f7fafc;
+            color: var(--text-main);
+        }
+
+        /* --- Loading State --- */
+        .loader-container {
+            display: none; /* Flex when active */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Footer --- */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            background-color: white;
+            margin-top: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo-section">
+                <h1>CytoAssist</h1>
+                <p>AI-assisted cytology image screening for decision support</p>
+            </div>
+            <div class="header-badge">
+                Research Preview
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Medical Disclaimer -->
+        <section class="disclaimer-box">
+            <div class="disclaimer-icon">
+                <!-- Simple SVG Warning Icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="disclaimer-text">
+                <strong>Important Medical Disclaimer</strong>
+                <p>This tool is for educational and research purposes only. It does not provide medical diagnoses. Final interpretation must be done by qualified medical professionals.</p>
+            </div>
+        </section>
+
+        <main>
+            <!-- Upload Section -->
+            <section class="card" id="uploadSection">
+                <div class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    Image Upload
+                </div>
+                
+                <div class="upload-area" id="dropZone">
+                    <div class="upload-icon" style="margin: 0 auto 1rem auto;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <div class="upload-text">Drag & drop cytology or FNAC image here</div>
+                    <div class="upload-subtext">or click to browse (JPG, PNG)</div>
+                    <input type="file" id="fileInput" accept="image/png, image/jpeg">
+                </div>
+            </section>
+
+            <!-- Loading Spinner -->
+            <div class="loader-container" id="loader">
+                <div class="spinner"></div>
+                <p style="color: var(--text-muted); font-weight: 500;">Analyzing morphological features...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-container" id="resultsSection">
+                
+                <div class="results-grid">
+                    <!-- Screening Results -->
+                    <section class="card">
+                        <div class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                            Screening Result
+                        </div>
+                        
+                        <div style="margin-top: 1rem;">
+                            <div class="confidence-item">
+                                <div class="confidence-header">
+                                    <span>Suspicious Features Confidence</span>
+                                    <span id="scoreSuspicious">--%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-bar bar-suspicious" id="barSuspicious"></div>
+                                </div>
+                            </div>
+
+                            <div class="confidence-item">
+                                <div class="confidence-header">
+                                    <span>Benign Features Confidence</span>
+                                    <span id="scoreBenign">--%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-bar bar-benign" id="barBenign"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 2rem; font-size: 0.85rem; color: var(--text-muted); background: #f7fafc; padding: 1rem; border-radius: var(--radius-md);">
+                            <p><strong>Note:</strong> Scores represent the model's confidence based on cellular morphology (nuclear size, chromatin pattern, etc.).</p>
+                        </div>
+                    </section>
+
+                    <!-- Explainability -->
+                    <section class="card">
+                        <div class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            Model Attention Map (Grad-CAM)
+                        </div>
+
+                        <div class="viz-comparison">
+                            <div class="viz-box">
+                                <img id="imgOriginal" src="" alt="Original Image">
+                                <div class="viz-label">Original</div>
+                            </div>
+                            <div class="viz-box">
+                                <img id="imgHeatmap" src="" alt="Heatmap Overlay">
+                                <div class="heatmap-overlay"></div>
+                                <div class="viz-label">Attention Map</div>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); text-align: center;">
+                            Highlighted regions indicate cellular areas influencing the model's output.
+                        </p>
+                    </section>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn btn-reset" onclick="resetApp()">Analyze Another Image</button>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>CytoAssist is an AI-assisted screening demo developed for research purposes.</p>
+        <p>Not for clinical use.</p>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const loader = document.getElementById('loader');
+        const resultsSection = document.getElementById('resultsSection');
+        
+        const imgOriginal = document.getElementById('imgOriginal');
+        const imgHeatmap = document.getElementById('imgHeatmap');
+        
+        const barSuspicious = document.getElementById('barSuspicious');
+        const scoreSuspicious = document.getElementById('scoreSuspicious');
+        const barBenign = document.getElementById('barBenign');
+        const scoreBenign = document.getElementById('scoreBenign');
+
+        // Drag and Drop Events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        // Click to upload
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            // Validate image type
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload a valid image file (JPG or PNG).');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Set images source
+                imgOriginal.src = e.target.result;
+                imgHeatmap.src = e.target.result;
+
+                // Start simulation
+                startSimulation();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function startSimulation() {
+            // Hide upload, show loader
+            uploadSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            loader.style.display = 'flex';
+
+            // Simulate Network/Processing Delay (2 seconds)
+            setTimeout(() => {
+                loader.style.display = 'none';
+                resultsSection.style.display = 'block';
+                
+                // Generate Dummy Prediction Values
+                // Highlighting randomness for demo purposes
+                // Ideally this comes from the backend
+                const isSuspicious = Math.random() > 0.5;
+                let suspiciousVal, benignVal;
+
+                if (isSuspicious) {
+                    suspiciousVal = Math.floor(Math.random() * (95 - 60) + 60); // 60-95%
+                    benignVal = 100 - suspiciousVal;
+                } else {
+                    benignVal = Math.floor(Math.random() * (98 - 70) + 70); // 70-98%
+                    suspiciousVal = 100 - benignVal;
+                }
+
+                // Animate Bars
+                setTimeout(() => {
+                    barSuspicious.style.width = suspiciousVal + '%';
+                    scoreSuspicious.innerText = suspiciousVal + '%';
+                    
+                    barBenign.style.width = benignVal + '%';
+                    scoreBenign.innerText = benignVal + '%';
+                }, 100);
+
+            }, 2000);
+        }
+
+        function resetApp() {
+            // Clear values
+            fileInput.value = '';
+            barSuspicious.style.width = '0%';
+            barBenign.style.width = '0%';
+            scoreSuspicious.innerText = '--%';
+            scoreBenign.innerText = '--%';
+            
+            // Switch views
+            resultsSection.style.display = 'none';
+            uploadSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
